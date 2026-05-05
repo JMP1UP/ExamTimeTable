@@ -21,8 +21,6 @@
       --accent-soft:#fff7df;
       --good:#0f766e;
       --danger:#b42318;
-      --subject-colour:#c99a2e;
-      --subject-soft:rgba(201,154,46,.10);
       --shadow:0 8px 24px rgba(16,42,67,.09);
       --radius:18px;
     }
@@ -150,13 +148,16 @@
       font-size:.82rem;
     }
     #subjectPanel {
-      overflow:hidden;
+      overflow-y:auto;
+      overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
       transition:max-height .25s ease, opacity .2s ease, margin .2s ease;
-      max-height:900px;
+      max-height:min(72vh, 900px);
       opacity:1;
     }
     #subjectPanel.hidden {
       max-height:0;
+      overflow:hidden;
       opacity:0;
       margin:0;
       padding-top:0;
@@ -164,10 +165,15 @@
       border-width:0;
     }
     .subject-actions {
+      position:sticky;
+      top:0;
+      z-index:2;
       display:flex;
       gap:8px;
       flex-wrap:wrap;
-      margin-bottom:12px;
+      margin:-2px 0 12px;
+      padding:2px 0 10px;
+      background:var(--card);
     }
     .subject-grid {
       display:grid;
@@ -227,31 +233,15 @@
       display:grid;
       gap:10px;
     }
-    .date-group {
-      display:grid;
-      gap:10px;
-      margin-bottom:16px;
-    }
-    .date-heading {
-      margin:8px 0 0;
-      font-size:.94rem;
-      color:var(--muted);
-      font-weight:800;
-      letter-spacing:.01em;
-    }
     .card {
       padding:14px;
       display:grid;
       gap:8px;
-      border-left:6px solid var(--subject-colour);
-      background:linear-gradient(90deg,var(--subject-soft) 0%,#ffffff 28%);
+      border-left:5px solid var(--accent);
     }
     .card.today {
-      box-shadow:0 8px 24px rgba(15,118,110,.16);
-      outline:1px solid #99f6e4;
-    }
-    .card.next-card {
-      outline:2px solid #f1d488;
+      border-left-color:var(--good);
+      background:linear-gradient(90deg,#effffb 0%,#ffffff 32%);
     }
     .exam-head {
       display:flex;
@@ -269,18 +259,6 @@
       margin-top:2px;
       font-size:.9rem;
       font-weight:650;
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-    .subject-dot {
-      width:10px;
-      height:10px;
-      border-radius:999px;
-      background:var(--subject-colour);
-      display:inline-block;
-      flex:0 0 auto;
     }
     .pill {
       display:inline-flex;
@@ -297,11 +275,6 @@
     .pill.today-pill {
       background:#ccfbf1;
       color:#115e59;
-    }
-    .pill.next-pill {
-      background:#fff7df;
-      color:#6b4e00;
-      border:1px solid #f1d488;
     }
     .meta {
       display:flex;
@@ -327,12 +300,6 @@
       color:var(--muted);
       font-size:.82rem;
       text-align:center;
-      display:grid;
-      gap:6px;
-    }
-    .safety-note {
-      font-weight:800;
-      color:#7c2d12;
     }
     @media (max-width:640px) {
       .topbar { align-items:flex-start; }
@@ -341,6 +308,8 @@
       .exam-head { flex-direction:column; }
       button { padding:9px 12px; }
       .subtitle { white-space:normal; }
+      #subjectPanel { max-height:62vh; }
+      .subject-grid { grid-template-columns:1fr; }
     }
     @media print {
       header, #subjectPanel, .controls button, .footer-note { display:none !important; }
@@ -435,8 +404,7 @@
     </section>
 
     <div class="footer-note">
-      <div class="safety-note">Planning aid only: always check your official school exam timetable.</div>
-      <div>Timetable data version: Summer 2026 spreadsheet, updated 2 May 2026. Rooming and last-minute changes may be issued separately by school.</div>
+      Timetable data loaded from the Summer 2026 exam spreadsheet. Pupils should check any rooming or last-minute changes issued by school.
     </div>
   </main>
 
@@ -1946,93 +1914,19 @@ function sortExams(a,b) {
   return ad - bd || a.subject.localeCompare(b.subject);
 }
 
-const SUBJECT_COLOURS = [
-  "#2563eb", "#7c3aed", "#db2777", "#ea580c", "#16a34a", "#0891b2",
-  "#ca8a04", "#dc2626", "#4f46e5", "#0d9488", "#9333ea", "#65a30d"
-];
-
-function hashString(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash) + str.charCodeAt(i);
-  return Math.abs(hash);
-}
-
-function subjectColour(subject) {
-  return SUBJECT_COLOURS[hashString(subject) % SUBJECT_COLOURS.length];
-}
-
-function hexToRgb(hex) {
-  const clean = hex.replace("#", "");
-  return {
-    r: parseInt(clean.slice(0,2), 16),
-    g: parseInt(clean.slice(2,4), 16),
-    b: parseInt(clean.slice(4,6), 16)
-  };
-}
-
-function subjectStyle(subject) {
-  const colour = subjectColour(subject);
-  const rgb = hexToRgb(colour);
-  return `--subject-colour:${colour}; --subject-soft:rgba(${rgb.r},${rgb.g},${rgb.b},.10);`;
-}
-
-function dayDifference(e) {
-  const s = examStart(e);
-  if (!s) return null;
-  const start = new Date(s.getFullYear(), s.getMonth(), s.getDate());
-  const today = todayStart();
-  return Math.round((start - today) / (24*60*60*1000));
-}
-
-function countdownText(e) {
-  const diff = dayDifference(e);
-  if (diff === null) return "Date TBA";
-  if (diff < 0) return "Completed";
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Tomorrow";
-  if (diff < 7) return `In ${diff} days`;
-  const weeks = Math.floor(diff / 7);
-  const days = diff % 7;
-  if (weeks === 1 && days === 0) return "In 1 week";
-  if (weeks === 1) return `In 1 week, ${days} day${days === 1 ? "" : "s"}`;
-  if (days === 0) return `In ${weeks} weeks`;
-  return `In ${weeks} weeks, ${days} day${days === 1 ? "" : "s"}`;
-}
-
-function dateGroupLabel(e) {
-  if (!e.date) return "TBA";
-  const diff = dayDifference(e);
-  const label = diff === 0 ? "Today" : diff === 1 ? "Tomorrow" : fmtFull.format(new Date(`${e.date}T12:00:00`));
-  return `${label} — ${dateText(e)}`;
-}
-
-function groupByDate(list) {
-  const groups = new Map();
-  list.forEach(e => {
-    const key = e.date || "TBA";
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(e);
-  });
-  return [...groups.entries()].map(([key, exams]) => ({ key, exams }));
-}
-
-function examCard(e, options={}) {
-  const today = options.today ?? false;
-  const next = options.next ?? false;
+function examCard(e, today=false) {
   const time = e.time === "All Day" ? "All day" : e.time;
   const room = e.room ? `<span><b>Room:</b> ${escapeHtml(e.room)}</span>` : "";
   const duration = e.duration ? `<span><b>Length:</b> ${escapeHtml(e.duration)}</span>` : "";
   const board = e.board || e.code ? `<span><b>Paper:</b> ${escapeHtml(e.board)} ${escapeHtml(e.code)}</span>` : "";
   const candidates = e.candidateTotal ? `<span><b>Candidates:</b> ${e.candidateTotal}</span>` : "";
-  const statusClass = today ? "today-pill" : next ? "next-pill" : "";
-  const statusPrefix = today ? "Today • " : next ? `${escapeHtml(countdownText(e))} • ` : `${escapeHtml(countdownText(e))} • `;
-  return `<article class="card ${today ? "today" : ""} ${next ? "next-card" : ""}" style="${subjectStyle(e.subject)}">
+  return `<article class="card ${today ? "today" : ""}">
     <div class="exam-head">
       <div>
         <p class="exam-title">${escapeHtml(e.title)}</p>
-        <div class="exam-subject"><span class="subject-dot" aria-hidden="true"></span><span>${escapeHtml(e.subject)}</span></div>
+        <div class="exam-subject">${escapeHtml(e.subject)}</div>
       </div>
-      <div class="pill ${statusClass}">${statusPrefix}${escapeHtml(dateText(e))} • ${escapeHtml(time)}</div>
+      <div class="pill ${today ? "today-pill" : ""}">${today ? "Today • " : ""}${escapeHtml(dateText(e))} • ${escapeHtml(time)}</div>
     </div>
     <div class="meta">
       ${duration}
@@ -2047,31 +1941,11 @@ function escapeHtml(str) {
   return String(str ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
-function renderGroupedList(id, list, options={}) {
-  const target = document.getElementById(id);
-  if (!list.length) {
-    target.innerHTML = "";
-    return;
-  }
-  target.innerHTML = groupByDate(list).map(group => {
-    const heading = options.grouped === false ? "" : `<h3 class="date-heading">${escapeHtml(dateGroupLabel(group.exams[0]))}</h3>`;
-    return `<div class="date-group">${heading}${group.exams.map(e => examCard(e, {
-      today: isToday(e) && !isCompleted(e),
-      next: options.nextId === e.id
-    })).join("")}</div>`;
-  }).join("");
-}
-
-function renderList(id, list, today=false) {
-  renderGroupedList(id, list, { grouped:false });
-}
-
 function renderSubjects() {
   const selected = selectedSubjects();
   subjectGrid.innerHTML = subjects().map(s => `
-    <label class="subject" style="${subjectStyle(s)}">
+    <label class="subject">
       <input type="checkbox" value="${escapeHtml(s)}" ${selected.has(s) ? "checked" : ""}>
-      <span class="subject-dot" aria-hidden="true"></span>
       <span>${escapeHtml(s)}</span>
     </label>
   `).join("");
@@ -2101,7 +1975,7 @@ function render() {
   document.getElementById("dateLine").textContent = `Today is ${fmtFull.format(now)}. Completed exams are hidden unless you choose to show them.`;
   document.getElementById("studentSummary").textContent = selected.size ? `${selected.size} subject(s) selected` : "No subjects selected";
   document.getElementById("todayCount").textContent = today.length;
-  document.getElementById("nextCount").textContent = next.length ? countdownText(next[0]) : "—";
+  document.getElementById("nextCount").textContent = next.length ? dateText(next[0]) : "—";
   document.getElementById("leftCount").textContent = today.length + upcoming.length;
   document.getElementById("todayLabel").textContent = `${today.length} found`;
   document.getElementById("upcomingLabel").textContent = `${upcoming.length} remaining`;
@@ -2117,12 +1991,11 @@ function render() {
     msg.innerHTML = "";
   }
 
-  const nextId = next.length ? next[0].id : null;
-  renderGroupedList("todayList", today, { nextId });
-  renderGroupedList("nextList", next, { grouped:false, nextId });
-  renderGroupedList("upcomingList", upcoming, { nextId });
-  renderGroupedList("unscheduledList", unscheduled, { grouped:false });
-  renderGroupedList("completedList", completed);
+  renderList("todayList", today, true);
+  renderList("nextList", next, next.length && isToday(next[0]));
+  renderList("upcomingList", upcoming);
+  renderList("unscheduledList", unscheduled);
+  renderList("completedList", completed);
 
   document.getElementById("todaySection").classList.toggle("hide", !today.length);
   document.getElementById("nextSection").classList.toggle("hide", !next.length);
