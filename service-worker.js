@@ -1,4 +1,4 @@
-const CACHE_NAME = "lhs-exam-timetable-v1";
+const CACHE_NAME = "lhs-exam-timetable-v6";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", event => {
