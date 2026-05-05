@@ -1,160 +1,388 @@
-<!doctype html>
-<html lang="en-GB">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#102a43">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="LHS Exams">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="icon.svg">
-  <title>LHS Exam Timetable</title>
-  <style>
-    :root {
-      --ink:#102a43;
-      --muted:#627d98;
-      --line:#d9e2ec;
-      --soft:#f0f4f8;
-      --card:#ffffff;
-      --accent:#c99a2e;
-      --accent-soft:#fff7df;
-      --good:#0f766e;
-      --danger:#b42318;
-      --shadow:0 8px 24px rgba(16,42,67,.09);
-      --radius:18px;
-    }
-    * { box-sizing:border-box; }
-    html { scroll-behavior:smooth; }
+<style>
+  :root {
+    --ink:#102a43;
+    --muted:#627d98;
+    --line:#d9e2ec;
+    --soft:#f0f4f8;
+    --card:#ffffff;
+    --accent:#c99a2e;
+    --accent-soft:#fff7df;
+    --good:#0f766e;
+    --danger:#b42318;
+    --shadow:0 8px 24px rgba(16,42,67,.09);
+    --radius:18px;
+  }
+
+  * {
+    box-sizing:border-box;
+  }
+
+  html,
+  body {
+    overflow-x:hidden;
+  }
+
+  body {
+    margin:0;
+    font-family:system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color:var(--ink);
+    background:linear-gradient(180deg,#f7fafc 0%,#edf2f7 100%);
+    min-height:100vh;
+  }
+
+  header {
+    position:sticky;
+    top:0;
+    z-index:10;
+    padding:calc(14px + env(safe-area-inset-top)) 16px 12px;
+    background:rgba(247,250,252,.94);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+
+  .topbar {
+    max-width:980px;
+    margin:0 auto;
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  .brand {
+    display:flex;
+    gap:10px;
+    align-items:center;
+    min-width:0;
+  }
+
+  .badge {
+    width:42px;
+    height:42px;
+    border-radius:14px;
+    display:grid;
+    place-items:center;
+    color:white;
+    background:var(--ink);
+    font-weight:800;
+    letter-spacing:.03em;
+    box-shadow:var(--shadow);
+    flex:0 0 auto;
+  }
+
+  h1 {
+    font-size:1.05rem;
+    margin:0;
+    line-height:1.15;
+  }
+
+  .subtitle {
+    color:var(--muted);
+    font-size:.83rem;
+    margin-top:2px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  button,
+  .button {
+    border:0;
+    border-radius:999px;
+    padding:10px 14px;
+    background:var(--ink);
+    color:white;
+    font-weight:700;
+    cursor:pointer;
+    font-size:.9rem;
+    min-height:42px;
+  }
+
+  button.secondary {
+    background:white;
+    color:var(--ink);
+    border:1px solid var(--line);
+  }
+
+  button.warning {
+    background:var(--accent-soft);
+    color:#6b4e00;
+    border:1px solid #f1d488;
+  }
+
+  main {
+    max-width:980px;
+    margin:0 auto;
+    padding:16px 16px 72px;
+  }
+
+  .panel,
+  .card {
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+  }
+
+  .panel {
+    padding:14px;
+    margin-bottom:14px;
+  }
+
+  .controls {
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  .status-row {
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:10px;
+    margin-top:12px;
+  }
+
+  .stat {
+    background:var(--soft);
+    border-radius:14px;
+    padding:12px;
+    min-height:74px;
+  }
+
+  .stat strong {
+    display:block;
+    font-size:1.4rem;
+    line-height:1;
+    margin-bottom:4px;
+  }
+
+  .stat span {
+    color:var(--muted);
+    font-size:.82rem;
+  }
+
+  #subjectPanel {
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    transition:max-height .25s ease, opacity .2s ease, margin .2s ease;
+    max-height:min(72vh, 900px);
+    opacity:1;
+  }
+
+  #subjectPanel.hidden {
+    max-height:0;
+    overflow:hidden;
+    opacity:0;
+    margin:0;
+    padding-top:0;
+    padding-bottom:0;
+    border-width:0;
+  }
+
+  .subject-actions {
+    position:sticky;
+    top:0;
+    z-index:2;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin:-2px 0 12px;
+    padding:2px 0 10px;
+    background:var(--card);
+  }
+
+  .subject-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+    gap:8px;
+  }
+
+  label.subject {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px;
+    background:var(--soft);
+    border:1px solid transparent;
+    border-radius:14px;
+    font-weight:650;
+    cursor:pointer;
+  }
+
+  label.subject:has(input:checked) {
+    background:var(--accent-soft);
+    border-color:#f1d488;
+  }
+
+  input[type="checkbox"] {
+    width:20px;
+    height:20px;
+    accent-color:#102a43;
+  }
+
+  .notice {
+    padding:12px 14px;
+    border-radius:14px;
+    background:#eefaf8;
+    border:1px solid #b7e4df;
+    color:#134e4a;
+    margin-bottom:12px;
+    font-weight:650;
+  }
+
+  .notice.empty {
+    background:#fff7ed;
+    border-color:#fed7aa;
+    color:#9a3412;
+  }
+
+  .section-title {
+    margin:22px 0 10px;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:10px;
+  }
+
+  .section-title h2 {
+    margin:0;
+    font-size:1.05rem;
+  }
+
+  .section-title span {
+    color:var(--muted);
+    font-size:.88rem;
+  }
+
+  .exam-list {
+    display:grid;
+    gap:10px;
+  }
+
+  .card {
+    padding:14px;
+    display:grid;
+    gap:8px;
+    border-left:5px solid var(--accent);
+  }
+
+  .card.today {
+    border-left-color:var(--good);
+    background:linear-gradient(90deg,#effffb 0%,#ffffff 32%);
+  }
+
+  .exam-head {
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    align-items:flex-start;
+  }
+
+  .exam-title {
+    font-size:1rem;
+    font-weight:800;
+    margin:0;
+  }
+
+  .exam-subject {
+    color:var(--muted);
+    margin-top:2px;
+    font-size:.9rem;
+    font-weight:650;
+  }
+
+  .pill {
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    border-radius:999px;
+    padding:6px 9px;
+    background:var(--soft);
+    color:var(--ink);
+    font-weight:750;
+    font-size:.82rem;
+    white-space:nowrap;
+  }
+
+  .pill.today-pill {
+    background:#ccfbf1;
+    color:#115e59;
+  }
+
+  .meta {
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    color:var(--muted);
+    font-size:.88rem;
+  }
+
+  .meta b {
+    color:var(--ink);
+  }
+
+  .muted {
+    color:var(--muted);
+  }
+
+  .small {
+    font-size:.84rem;
+  }
+
+  .hide {
+    display:none !important;
+  }
+
+  .footer-note {
+    margin-top:24px;
+    color:var(--muted);
+    font-size:.82rem;
+    text-align:center;
+  }
+
+  @media (max-width:640px) {
     body {
-      margin:0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color:var(--ink);
-      background:linear-gradient(180deg,#f7fafc 0%,#edf2f7 100%);
-      min-height:100vh;
+      min-height:100dvh;
     }
-    header {
-      position:sticky;
-      top:0;
-      z-index:10;
-      padding:calc(14px + env(safe-area-inset-top)) 16px 12px;
-      background:rgba(247,250,252,.94);
-      backdrop-filter: blur(10px);
-      border-bottom:1px solid var(--line);
-    }
+
     .topbar {
-      max-width:980px;
-      margin:0 auto;
-      display:flex;
-      gap:12px;
-      align-items:center;
-      justify-content:space-between;
+      align-items:flex-start;
     }
+
     .brand {
-      display:flex;
-      gap:10px;
-      align-items:center;
-      min-width:0;
+      flex:1;
     }
-    .badge {
-      width:42px;
-      height:42px;
-      border-radius:14px;
-      display:grid;
-      place-items:center;
-      color:white;
-      background:var(--ink);
-      font-weight:800;
-      letter-spacing:.03em;
-      box-shadow:var(--shadow);
-      flex:0 0 auto;
-    }
-    h1 {
-      font-size:1.05rem;
-      margin:0;
-      line-height:1.15;
-    }
-    .subtitle {
-      color:var(--muted);
-      font-size:.83rem;
-      margin-top:2px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    button, .button {
-      border:0;
-      border-radius:999px;
-      padding:10px 14px;
-      background:var(--ink);
-      color:white;
-      font-weight:700;
-      cursor:pointer;
-      font-size:.9rem;
-      min-height:42px;
-    }
-    button.secondary {
-      background:white;
-      color:var(--ink);
-      border:1px solid var(--line);
-    }
-    button.warning {
-      background:var(--accent-soft);
-      color:#6b4e00;
-      border:1px solid #f1d488;
-    }
-    main {
-      max-width:980px;
-      margin:0 auto;
-      padding:16px 16px 72px;
-    }
-    .panel, .card {
-      background:var(--card);
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-    }
-    .panel {
-      padding:14px;
-      margin-bottom:14px;
-    }
-    .controls {
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
-    }
+
     .status-row {
-      display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:10px;
-      margin-top:12px;
+      grid-template-columns:1fr;
     }
-    .stat {
-      background:var(--soft);
-      border-radius:14px;
-      padding:12px;
-      min-height:74px;
+
+    .exam-head {
+      flex-direction:column;
     }
-    .stat strong {
-      display:block;
-      font-size:1.4rem;
-      line-height:1;
-      margin-bottom:4px;
+
+    button {
+      padding:9px 12px;
     }
-    .stat span {
-      color:var(--muted);
-      font-size:.82rem;
+
+    .subtitle {
+      white-space:normal;
     }
+
+    /*
+      Important mobile fix:
+      On small screens, do not trap the subjects inside their own scrolling box.
+      Let the full page scroll instead.
+    */
     #subjectPanel {
-      overflow-y:auto;
-      overflow-x:hidden;
-      -webkit-overflow-scrolling:touch;
-      transition:max-height .25s ease, opacity .2s ease, margin .2s ease;
-      max-height:min(72vh, 900px);
-      opacity:1;
+      max-height:none;
+      overflow:visible;
+      -webkit-overflow-scrolling:auto;
     }
+
     #subjectPanel.hidden {
       max-height:0;
       overflow:hidden;
@@ -164,1889 +392,41 @@
       padding-bottom:0;
       border-width:0;
     }
+
     .subject-actions {
       position:sticky;
-      top:0;
-      z-index:2;
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      margin:-2px 0 12px;
-      padding:2px 0 10px;
+      top:72px;
+      z-index:3;
       background:var(--card);
+      padding:8px 0 10px;
+      margin:0 0 12px;
     }
+
     .subject-grid {
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
-      gap:8px;
+      grid-template-columns:1fr;
     }
-    label.subject {
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:10px;
-      background:var(--soft);
-      border:1px solid transparent;
-      border-radius:14px;
-      font-weight:650;
-      cursor:pointer;
-    }
-    label.subject:has(input:checked) {
-      background:var(--accent-soft);
-      border-color:#f1d488;
-    }
-    input[type="checkbox"] {
-      width:20px;
-      height:20px;
-      accent-color:#102a43;
-    }
-    .notice {
-      padding:12px 14px;
-      border-radius:14px;
-      background:#eefaf8;
-      border:1px solid #b7e4df;
-      color:#134e4a;
-      margin-bottom:12px;
-      font-weight:650;
-    }
-    .notice.empty {
-      background:#fff7ed;
-      border-color:#fed7aa;
-      color:#9a3412;
-    }
-    .section-title {
-      margin:22px 0 10px;
-      display:flex;
-      align-items:baseline;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .section-title h2 {
-      margin:0;
-      font-size:1.05rem;
-    }
-    .section-title span {
-      color:var(--muted);
-      font-size:.88rem;
-    }
-    .exam-list {
-      display:grid;
-      gap:10px;
-    }
-    .card {
-      padding:14px;
-      display:grid;
-      gap:8px;
-      border-left:5px solid var(--accent);
-    }
-    .card.today {
-      border-left-color:var(--good);
-      background:linear-gradient(90deg,#effffb 0%,#ffffff 32%);
-    }
-    .exam-head {
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      align-items:flex-start;
-    }
-    .exam-title {
-      font-size:1rem;
-      font-weight:800;
-      margin:0;
-    }
-    .exam-subject {
-      color:var(--muted);
-      margin-top:2px;
-      font-size:.9rem;
-      font-weight:650;
-    }
-    .pill {
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      border-radius:999px;
-      padding:6px 9px;
-      background:var(--soft);
-      color:var(--ink);
-      font-weight:750;
-      font-size:.82rem;
-      white-space:nowrap;
-    }
-    .pill.today-pill {
-      background:#ccfbf1;
-      color:#115e59;
-    }
-    .meta {
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      color:var(--muted);
-      font-size:.88rem;
-    }
-    .meta b {
-      color:var(--ink);
-    }
-    .muted {
-      color:var(--muted);
-    }
-    .small {
-      font-size:.84rem;
-    }
-    .hide {
+  }
+
+  @media print {
+    header,
+    #subjectPanel,
+    .controls button,
+    .footer-note {
       display:none !important;
     }
-    .footer-note {
-      margin-top:24px;
-      color:var(--muted);
-      font-size:.82rem;
-      text-align:center;
+
+    body {
+      background:white;
     }
-    @media (max-width:640px) {
-      .topbar { align-items:flex-start; }
-      .brand { flex:1; }
-      .status-row { grid-template-columns:1fr; }
-      .exam-head { flex-direction:column; }
-      button { padding:9px 12px; }
-      .subtitle { white-space:normal; }
-      #subjectPanel { max-height:62vh; }
-      .subject-grid { grid-template-columns:1fr; }
+
+    main {
+      padding:0;
     }
-    @media print {
-      header, #subjectPanel, .controls button, .footer-note { display:none !important; }
-      body { background:white; }
-      main { padding:0; }
-      .card, .panel { box-shadow:none; break-inside:avoid; }
+
+    .card,
+    .panel {
+      box-shadow:none;
+      break-inside:avoid;
     }
-  </style>
-</head>
-<body>
-  <header>
-    <div class="topbar">
-      <div class="brand">
-        <div class="badge">LHS</div>
-        <div>
-          <h1>Exam Timetable</h1>
-          <div class="subtitle">Choose your subjects. The app then shows today, next and upcoming exams.</div>
-        </div>
-      </div>
-      <button id="toggleSubjects" class="secondary" aria-expanded="true">Subjects</button>
-    </div>
-  </header>
-
-  <main>
-    <section class="panel">
-      <div class="controls">
-        <div>
-          <strong id="studentSummary">No subjects selected</strong>
-          <div class="muted small" id="dateLine"></div>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button id="showHidden" class="secondary">Show completed</button>
-          <button id="resetBtn" class="warning">Reset</button>
-        </div>
-      </div>
-      <div class="status-row">
-        <div class="stat"><strong id="todayCount">0</strong><span>exam(s) today</span></div>
-        <div class="stat"><strong id="nextCount">—</strong><span>next exam</span></div>
-        <div class="stat"><strong id="leftCount">0</strong><span>remaining selected exam(s)</span></div>
-      </div>
-    </section>
-
-    <section id="subjectPanel" class="panel">
-      <div class="subject-actions">
-        <button id="selectAll" class="secondary">Select all</button>
-        <button id="clearAll" class="secondary">Clear all</button>
-        <button id="hideMenu">Hide menu</button>
-      </div>
-      <div id="subjectGrid" class="subject-grid"></div>
-    </section>
-
-    <div id="message"></div>
-
-    <section id="todaySection">
-      <div class="section-title">
-        <h2>Today</h2>
-        <span id="todayLabel"></span>
-      </div>
-      <div id="todayList" class="exam-list"></div>
-    </section>
-
-    <section id="nextSection">
-      <div class="section-title">
-        <h2>Next</h2>
-        <span>The first upcoming selected exam</span>
-      </div>
-      <div id="nextList" class="exam-list"></div>
-    </section>
-
-    <section id="upcomingSection">
-      <div class="section-title">
-        <h2>Upcoming</h2>
-        <span id="upcomingLabel"></span>
-      </div>
-      <div id="upcomingList" class="exam-list"></div>
-    </section>
-
-    <section id="unscheduledSection">
-      <div class="section-title">
-        <h2>Unscheduled / TBA</h2>
-        <span>Check final details with school</span>
-      </div>
-      <div id="unscheduledList" class="exam-list"></div>
-    </section>
-
-    <section id="completedSection" class="hide">
-      <div class="section-title">
-        <h2>Completed</h2>
-        <span>Hidden by default</span>
-      </div>
-      <div id="completedList" class="exam-list"></div>
-    </section>
-
-    <div class="footer-note">
-      Timetable data loaded from the Summer 2026 exam spreadsheet. Pupils should check any rooming or last-minute changes issued by school.
-    </div>
-  </main>
-
-<script>
-const EXAMS = [
-  {
-    "id": "e1",
-    "date": "2026-05-01",
-    "dateText": "Fri 01 May",
-    "time": "All Day",
-    "duration": "1h",
-    "board": "AQA",
-    "code": "7692/3T",
-    "title": "Spanish A Level Speaking Teacher Cond",
-    "subject": "Spanish A Level",
-    "level": "A Level",
-    "candidates": 1,
-    "room": "TBC",
-    "invigilators": "Teachers",
-    "allDay": true,
-    "candidateTotal": 1
-  },
-  {
-    "id": "e2",
-    "date": null,
-    "dateText": "20 & 21",
-    "time": "All Day",
-    "duration": "10h",
-    "board": "AQA",
-    "code": "8201/X",
-    "title": "Art & Des [Art Craft & Des] Ext Set 7 & 8 April",
-    "subject": "Art & Design GCSE",
-    "level": "GCSE",
-    "candidates": 7,
-    "room": "Art room",
-    "invigilators": "Mr Rose & Zaynab",
-    "allDay": true,
-    "candidateTotal": 7
-  },
-  {
-    "id": "e3",
-    "date": null,
-    "dateText": "TBA",
-    "time": "TBA",
-    "duration": "",
-    "board": "WJEC/GCE",
-    "code": "A660U10-1",
-    "title": "Music Component 1A Performing",
-    "subject": "Music A Level",
-    "level": "A Level",
-    "candidates": 1,
-    "room": "TBC",
-    "invigilators": "Teachers",
-    "allDay": false,
-    "candidateTotal": 1
-  },
-  {
-    "id": "e4",
-    "date": null,
-    "dateText": "TBA",
-    "time": "TBA",
-    "duration": "",
-    "board": "WJEC/GCE",
-    "code": "A660U20-1",
-    "title": "Music Component 2A Composing",
-    "subject": "Music A Level",
-    "level": "A Level",
-    "candidates": 1,
-    "room": "TBC",
-    "invigilators": "Teachers",
-    "allDay": false,
-    "candidateTotal": 1
-  },
-  {
-    "id": "e5",
-    "date": "2026-03-06",
-    "dateText": "Fri 06 Mar",
-    "time": "All Day",
-    "duration": "5h",
-    "board": "WJEC/GCE",
-    "code": "A690U20-1",
-    "title": "Drama Comp 2 Text in Action",
-    "subject": "Drama A Level",
-    "level": "A Level",
-    "candidates": 1,
-    "room": "TBC",
-    "invigilators": "Teachers",
-    "allDay": true,
-    "candidateTotal": 1
-  },
-  {
-    "id": "e6",
-    "date": "2026-05-06",
-    "dateText": "Wed 06 May",
-    "time": "All Day",
-    "duration": "3h",
-    "board": "AQA",
-    "code": "8692/SH",
-    "title": "Spanish Speaking Test Tier H",
-    "subject": "Spanish GCSE",
-    "level": "GCSE",
-    "candidates": 10,
-    "room": "Meeting room",
-    "invigilators": "Zaynab",
-    "allDay": true,
-    "candidateTotal": 10
-  },
-  {
-    "id": "e7",
-    "date": "2026-05-05",
-    "dateText": "Tue 05 May",
-    "time": "All Day",
-    "duration": "3h",
-    "board": "AQA",
-    "code": "8662/SH",
-    "title": "German Speaking Test Tier H",
-    "subject": "German GCSE",
-    "level": "GCSE",
-    "candidates": 3,
-    "room": "Meeting room",
-    "invigilators": "Zaynab",
-    "allDay": true,
-    "candidateTotal": 3
-  },
-  {
-    "id": "e8",
-    "date": "2026-05-05",
-    "dateText": "Tue 05 May",
-    "time": "All Day",
-    "duration": "3h",
-    "board": "AQA",
-    "code": "8683/SH",
-    "title": "Panjabi Speaking Test Tier H",
-    "subject": "Panjabi GCSE",
-    "level": "GCSE",
-    "candidates": 1,
-    "room": "TBC",
-    "invigilators": "Daljit",
-    "allDay": true,
-    "candidateTotal": 1
-  },
-  {
-    "id": "e9",
-    "date": "2026-05-07",
-    "dateText": "Thur 07 May",
-    "time": "All Day",
-    "duration": "5h",
-    "board": "AQA",
-    "code": "8692/SH",
-    "title": "Spanish Speaking Test Tier H",
-    "subject": "Spanish GCSE",
-    "level": "GCSE",
-    "candidates": 10,
-    "room": "Meeting room",
-    "invigilators": "Zaynab",
-    "allDay": true,
-    "candidateTotal": 10
-  },
-  {
-    "id": "e10",
-    "date": "2026-05-07",
-    "dateText": "Thu 07 May",
-    "time": "13:30",
-    "duration": "45m",
-    "board": "AQA",
-    "code": "8662/LH",
-    "title": "German Listening Test Tier H",
-    "subject": "German GCSE",
-    "level": "GCSE",
-    "candidates": 3,
-    "room": "Rm 25",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 3
-  },
-  {
-    "id": "e11",
-    "date": "2026-05-07",
-    "dateText": "Thu 07 May",
-    "time": "13:30",
-    "duration": "1h",
-    "board": "AQA",
-    "code": "8662/RH",
-    "title": "German Reading Test Tier H",
-    "subject": "German GCSE",
-    "level": "GCSE",
-    "candidates": 3,
-    "room": "Rm 25",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 3
-  },
-  {
-    "id": "e12",
-    "date": "2026-05-08",
-    "dateText": "Fri 08 May",
-    "time": "13:30",
-    "duration": "1h 30m",
-    "board": "WJEC/GCSE",
-    "code": "C690U30-1",
-    "title": "Drama COMPONENT3 Interpreting Theatre",
-    "subject": "Drama GCSE",
-    "level": "GCSE",
-    "candidates": 1,
-    "room": "Old Drama/Rm 20, Rm 25",
-    "invigilators": "PAT",
-    "allDay": false,
-    "candidateTotal": 15
-  },
-  {
-    "id": "e14",
-    "date": "2026-05-11",
-    "dateText": "Mon 11 May",
-    "time": "08:50",
-    "duration": "1h 45m",
-    "board": "AQA",
-    "code": "8702/1",
-    "title": "English Literature Paper 1",
-    "subject": "English Literature GCSE",
-    "level": "GCSE",
-    "candidates": 27,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 27
-  },
-  {
-    "id": "e15",
-    "date": "2026-05-12",
-    "dateText": "Tue 12 May",
-    "time": "08:50",
-    "duration": "3h",
-    "board": "AQA",
-    "code": "7172/1",
-    "title": "Philosophy A Level Paper 1",
-    "subject": "Philosophy A Level",
-    "level": "A Level",
-    "candidates": 1,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 1
-  },
-  {
-    "id": "e16",
-    "date": "2026-05-12",
-    "dateText": "Tue 12 May",
-    "time": "08:50",
-    "duration": "12h",
-    "board": "AQA",
-    "code": "8062/13",
-    "title": "Religious Studies A P1 Christianity",
-    "subject": "Religious Studies GCSE",
-    "level": "GCSE",
-    "candidates": 8,
-    "room": "Gym, Old Drama/Rm 20",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 9
-  },
-  {
-    "id": "e17",
-    "date": "2026-05-12",
-    "dateText": "Tue 12 May",
-    "time": "08:50",
-    "duration": "12h",
-    "board": "AQA",
-    "code": "8062/15",
-    "title": "Religious Studies A Islam",
-    "subject": "Religious Studies GCSE",
-    "level": "GCSE",
-    "candidates": 8,
-    "room": "Gym, Old Drama/Rm 20",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 9
-  },
-  {
-    "id": "e20",
-    "date": "2026-05-12",
-    "dateText": "Tue 12 May",
-    "time": "13:30",
-    "duration": "2h",
-    "board": "EDEXL/GCSE",
-    "code": "4BI1 1B",
-    "title": "Written Paper 1B",
-    "subject": "Biology IGCSE",
-    "level": "IGCSE",
-    "candidates": 14,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 28
-  },
-  {
-    "id": "e22",
-    "date": "2026-05-12",
-    "dateText": "Tue 12 May",
-    "time": "13:30",
-    "duration": "2h",
-    "board": "EDEXL/GCSE",
-    "code": "4SD0 1B",
-    "title": "Written Paper 1B",
-    "subject": "Science Double Award IGCSE",
-    "level": "IGCSE",
-    "candidates": 13,
-    "room": "Gym, Old Drama/Rm 20",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 14
-  },
-  {
-    "id": "e24",
-    "date": "2026-05-13",
-    "dateText": "Wed 13 May",
-    "time": "08:50",
-    "duration": "1h",
-    "board": "OCR",
-    "code": "J383/01",
-    "title": "Geography A : Living in the UK Today Written",
-    "subject": "Geography GCSE",
-    "level": "GCSE",
-    "candidates": 7,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 7
-  },
-  {
-    "id": "e25",
-    "date": "2026-05-13",
-    "dateText": "Wed 13 May",
-    "time": "08:50",
-    "duration": "2h 30m",
-    "board": "OCR",
-    "code": "H472/01",
-    "title": "Eng Lit: Drama & Poetry PRE-1900 Written",
-    "subject": "English Literature A Level",
-    "level": "A Level",
-    "candidates": 2,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 2
-  },
-  {
-    "id": "e26",
-    "date": "2026-05-13",
-    "dateText": "Wed 13 May",
-    "time": "13:30",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7132/1",
-    "title": "Business A Level Paper 1",
-    "subject": "Business A Level",
-    "level": "A Level",
-    "candidates": 3,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 3
-  },
-  {
-    "id": "e27",
-    "date": "2026-05-13",
-    "dateText": "Wed 13 May",
-    "time": "13:30",
-    "duration": "1h 30m",
-    "board": "OCR",
-    "code": "J277/01",
-    "title": "Comp Sci: Computer Systems Written",
-    "subject": "Computer Science GCSE",
-    "level": "GCSE",
-    "candidates": 13,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 13
-  },
-  {
-    "id": "e28",
-    "date": "2026-05-14",
-    "dateText": "Thu 14 May",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "EDEXL/GCSE",
-    "code": "4MA1 1H",
-    "title": "Written Paper 1H",
-    "subject": "Mathematics IGCSE",
-    "level": "IGCSE",
-    "candidates": 27,
-    "room": "Gym, Old Drama/Rm 20",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 28
-  },
-  {
-    "id": "e30",
-    "date": "2026-05-14",
-    "dateText": "Thu 14 May",
-    "time": "13:30",
-    "duration": "1h 15m",
-    "board": "AQA",
-    "code": "8662/WH",
-    "title": "German Writing Test Tier H",
-    "subject": "German GCSE",
-    "level": "GCSE",
-    "candidates": 3,
-    "room": "Gym",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 3
-  },
-  {
-    "id": "e31",
-    "date": "2026-05-15",
-    "dateText": "Fri 15 May",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7182/1",
-    "title": "Psychology A Level Paper 1",
-    "subject": "Psychology A Level",
-    "level": "A Level",
-    "candidates": 4,
-    "room": "Gym",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 4
-  },
-  {
-    "id": "e32",
-    "date": "2026-05-15",
-    "dateText": "Fri 15 May",
-    "time": "08:50",
-    "duration": "1h",
-    "board": "AQA",
-    "code": "8145/1A/B",
-    "title": "History P1A/B Germany & 1B/B Conflict/Tens",
-    "subject": "History GCSE",
-    "level": "GCSE",
-    "candidates": 18,
-    "room": "Gym",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 18
-  },
-  {
-    "id": "e33",
-    "date": "2026-05-15",
-    "dateText": "Fri 15 May",
-    "time": "08:50",
-    "duration": "1h",
-    "board": "AQA",
-    "code": "8145/1B/B",
-    "title": "History Paper 1B Op B1918-1939",
-    "subject": "History GCSE",
-    "level": "GCSE",
-    "candidates": 18,
-    "room": "Gym",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 18
-  },
-  {
-    "id": "e34",
-    "date": "2026-05-18",
-    "dateText": "Mon 18 May",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7192/1",
-    "title": "Sociology A Level Paper 1",
-    "subject": "Sociology A Level",
-    "level": "A Level",
-    "candidates": 3,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 3
-  },
-  {
-    "id": "e35",
-    "date": "2026-05-18",
-    "dateText": "Mon 18 May",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "EDEXL/GCSE",
-    "code": "4CH1 1C",
-    "title": "Written Paper 1C",
-    "subject": "Chemistry IGCSE",
-    "level": "IGCSE",
-    "candidates": 14,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 14
-  },
-  {
-    "id": "e36",
-    "date": "2026-05-18",
-    "dateText": "Mon 18 May",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "EDEXL/GCSE",
-    "code": "4SD0 1C",
-    "title": "Written Paper 1C",
-    "subject": "Science Double Award IGCSE",
-    "level": "IGCSE",
-    "candidates": 13,
-    "room": "Gym, Old Drama/Rm 20",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 14
-  },
-  {
-    "id": "e38",
-    "date": "2026-05-19",
-    "dateText": "Tue 19 May",
-    "time": "08:50",
-    "duration": "3h",
-    "board": "AQA",
-    "code": "7172/2",
-    "title": "Philosophy A Level Paper 2",
-    "subject": "Philosophy A Level",
-    "level": "A Level",
-    "candidates": 1,
-    "room": "Gym",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 1
-  },
-  {
-    "id": "e39",
-    "date": "2026-05-19",
-    "dateText": "Tue 19 May",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7132/2",
-    "title": "Business A Level Paper 2",
-    "subject": "Business A Level",
-    "level": "A Level",
-    "candidates": 3,
-    "room": "Gym",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 3
-  },
-  {
-    "id": "e40",
-    "date": "2026-05-19",
-    "dateText": "Tue 19 May",
-    "time": "08:50",
-    "duration": "2h 15m",
-    "board": "AQA",
-    "code": "8702/2",
-    "title": "English Literature Paper 2",
-    "subject": "English Literature GCSE",
-    "level": "GCSE",
-    "candidates": 27,
-    "room": "Gym",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 27
-  },
-  {
-    "id": "e41",
-    "date": "2026-05-19",
-    "dateText": "Tue 19 May",
-    "time": "13:30",
-    "duration": "1h 30m",
-    "board": "OCR",
-    "code": "J277/02",
-    "title": "Comp Sci: Computational Thinking, Algorithms Programming Written",
-    "subject": "Computer Science GCSE",
-    "level": "GCSE",
-    "candidates": 13,
-    "room": "Gym",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 13
-  },
-  {
-    "id": "e42",
-    "date": "2026-05-20",
-    "dateText": "Wed 20 May",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7182/2",
-    "title": "Psychology A Level Paper 2",
-    "subject": "Psychology A Level",
-    "level": "A Level",
-    "candidates": 4,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 4
-  },
-  {
-    "id": "e43",
-    "date": "2026-05-20",
-    "dateText": "Wed 20 May",
-    "time": "08:50",
-    "duration": "35m",
-    "board": "EDEXL/GCSE",
-    "code": "4FR1/01",
-    "title": "French Option T Listening",
-    "subject": "French IGCSE",
-    "level": "IGCSE",
-    "candidates": 1,
-    "room": "RM 25",
-    "invigilators": "Fathimath",
-    "allDay": false,
-    "candidateTotal": 1
-  },
-  {
-    "id": "e44",
-    "date": "2026-05-20",
-    "dateText": "Wed 20 May",
-    "time": "09:30",
-    "duration": "1h 45m",
-    "board": "EDEXL/GCSE",
-    "code": "4FR1/01",
-    "title": "French Option T Reading & Writing",
-    "subject": "French IGCSE",
-    "level": "IGCSE",
-    "candidates": 1,
-    "room": "RM 25",
-    "invigilators": "Fathimath",
-    "allDay": false,
-    "candidateTotal": 1
-  },
-  {
-    "id": "e45",
-    "date": "2026-05-20",
-    "dateText": "Wed 20 May",
-    "time": "13:30",
-    "duration": "1h 45m",
-    "board": "AQA",
-    "code": "8062/2A",
-    "title": "Religious Studies A P2A Thematic Studies",
-    "subject": "Religious Studies GCSE",
-    "level": "GCSE",
-    "candidates": 8,
-    "room": "Gym, Old Drama/Rm 20",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 9
-  },
-  {
-    "id": "e47",
-    "date": "2026-05-20",
-    "dateText": "Wed 20 May",
-    "time": "13:30",
-    "duration": "2h 15m",
-    "board": "OCR",
-    "code": "H556/01",
-    "title": "Physics A: Modelling Physics Written",
-    "subject": "Physics A Level",
-    "level": "A Level",
-    "candidates": 6,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 6
-  },
-  {
-    "id": "e48",
-    "date": "2026-05-21",
-    "dateText": "Thu 21 May",
-    "time": "08:50",
-    "duration": "1h 45m",
-    "board": "AQA",
-    "code": "8700/1",
-    "title": "English Language Paper 1",
-    "subject": "English Language GCSE",
-    "level": "GCSE",
-    "candidates": 27,
-    "room": "Gym, Old Drama/Rm 20",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 28
-  },
-  {
-    "id": "e50",
-    "date": "2026-05-21",
-    "dateText": "Thu 21 May",
-    "time": "08:50",
-    "duration": "2h 30m",
-    "board": "WJEC/GCE",
-    "code": "A690U30-1",
-    "title": "Drama Comp 3 Text in Performance",
-    "subject": "Drama A Level",
-    "level": "A Level",
-    "candidates": 1,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 1
-  },
-  {
-    "id": "e51",
-    "date": "2026-05-21",
-    "dateText": "Thu 21 May",
-    "time": "13:30",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7367/1",
-    "title": "Further Mathematics A Level Paper 1",
-    "subject": "Further Mathematics A Level",
-    "level": "A Level",
-    "candidates": 5,
-    "room": "Gym",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 5
-  },
-  {
-    "id": "e52",
-    "date": "2026-05-22",
-    "dateText": "Fri 22 May",
-    "time": "08:50",
-    "duration": "1h 15m",
-    "board": "AQA",
-    "code": "8582/1",
-    "title": "Physical Education Paper 1",
-    "subject": "Physical Education GCSE",
-    "level": "GCSE",
-    "candidates": 6,
-    "room": "Gym, Old Drama/Rm 20",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 7
-  },
-  {
-    "id": "e54",
-    "date": "2026-06-01",
-    "dateText": "Mon 01 Jun",
-    "time": "08:50",
-    "duration": "1h 15m",
-    "board": "AQA",
-    "code": "8582/2",
-    "title": "Physical Education Paper 2",
-    "subject": "Physical Education GCSE",
-    "level": "GCSE",
-    "candidates": 6,
-    "room": "Gym, Old Drama/Rm 20",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 7
-  },
-  {
-    "id": "e56",
-    "date": "2026-06-01",
-    "dateText": "Mon 01 Jun",
-    "time": "08:50",
-    "duration": "2h 30m",
-    "board": "OCR",
-    "code": "H472/02",
-    "title": "Eng Lit: Comparative and Contextual Study Written",
-    "subject": "English Literature A Level",
-    "level": "A Level",
-    "candidates": 2,
-    "room": "Gym",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 2
-  },
-  {
-    "id": "e57",
-    "date": "2026-06-01",
-    "dateText": "Mon 01 Jun",
-    "time": "08:50",
-    "duration": "2h 15m",
-    "board": "OCR",
-    "code": "H556/02",
-    "title": "Physics A: Exploring Physics Written",
-    "subject": "Physics A Level",
-    "level": "A Level",
-    "candidates": 6,
-    "room": "Old Drama/Rm 20",
-    "invigilators": "Zaynab",
-    "allDay": false,
-    "candidateTotal": 6
-  },
-  {
-    "id": "e58",
-    "date": "2026-06-02",
-    "dateText": "Tue 02 Jun",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7405/1",
-    "title": "Chemistry A Level Paper 1",
-    "subject": "Chemistry A Level",
-    "level": "A Level",
-    "candidates": 13,
-    "room": "Gym, Old Drama/Rm 20",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 14
-  },
-  {
-    "id": "e60",
-    "date": "2026-06-02",
-    "dateText": "Tue 02 Jun",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "EDEXL/GCSE",
-    "code": "4PH1 1P",
-    "title": "Written Paper 1P",
-    "subject": "Physics IGCSE",
-    "level": "IGCSE",
-    "candidates": 13,
-    "room": "Gym, Old Drama Studio",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 14
-  },
-  {
-    "id": "e62",
-    "date": "2026-06-02",
-    "dateText": "Tue 02 Jun",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "EDEXL/GCSE",
-    "code": "4SD0 1P",
-    "title": "Written Paper 1P",
-    "subject": "Science Double Award IGCSE",
-    "level": "IGCSE",
-    "candidates": 14,
-    "room": "Gym",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 14
-  },
-  {
-    "id": "e63",
-    "date": "2026-06-02",
-    "dateText": "Tue 02 Jun",
-    "time": "13:30",
-    "duration": "45m",
-    "board": "AQA",
-    "code": "8683/LH",
-    "title": "Panjabi Listening Test Tier H",
-    "subject": "Panjabi GCSE",
-    "level": "GCSE",
-    "candidates": 1,
-    "room": "RM 25",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 1
-  },
-  {
-    "id": "e64",
-    "date": "2026-06-02",
-    "dateText": "Tue 02 Jun",
-    "time": "13:30",
-    "duration": "1h",
-    "board": "AQA",
-    "code": "8683/RH",
-    "title": "Panjabi Reading Test Tier H",
-    "subject": "Panjabi GCSE",
-    "level": "GCSE",
-    "candidates": 1,
-    "room": "RM 25",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 1
-  },
-  {
-    "id": "e65",
-    "date": "2026-06-03",
-    "dateText": "Wed 03 Jun",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7192/2",
-    "title": "Sociology A Level Paper 2",
-    "subject": "Sociology A Level",
-    "level": "A Level",
-    "candidates": 3,
-    "room": "Gym",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 3
-  },
-  {
-    "id": "e66",
-    "date": "2026-06-03",
-    "dateText": "Wed 03 Jun",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "EDEXL/GCSE",
-    "code": "4MA1 2H",
-    "title": "Written Paper 2H",
-    "subject": "Mathematics IGCSE",
-    "level": "IGCSE",
-    "candidates": 27,
-    "room": "Gym, Old Drama/Rm 20",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 28
-  },
-  {
-    "id": "e68",
-    "date": "2026-06-03",
-    "dateText": "Wed 03 Jun",
-    "time": "13:30",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7357/1",
-    "title": "Mathematics A Level Paper 1",
-    "subject": "Mathematics A Level",
-    "level": "A Level",
-    "candidates": 15,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 15
-  },
-  {
-    "id": "e69",
-    "date": "2026-06-03",
-    "dateText": "Wed 03 Jun",
-    "time": "13:30",
-    "duration": "1h",
-    "board": "OCR",
-    "code": "J383/02",
-    "title": "Geography A : World Arnd US Written",
-    "subject": "Geography GCSE",
-    "level": "GCSE",
-    "candidates": 7,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 7
-  },
-  {
-    "id": "e70",
-    "date": "2026-06-04",
-    "dateText": "Thu 04 Jun",
-    "time": "08:50",
-    "duration": "2h 30m",
-    "board": "AQA",
-    "code": "7692/1",
-    "title": "Spanish A Level Paper 1 Listening, Reading and Writing",
-    "subject": "Spanish A Level",
-    "level": "A Level",
-    "candidates": 1,
-    "room": "Old Drama/Rm 20",
-    "invigilators": "Zaynab",
-    "allDay": false,
-    "candidateTotal": 1
-  },
-  {
-    "id": "e71",
-    "date": "2026-06-04",
-    "dateText": "Thu 04 Jun",
-    "time": "08:50",
-    "duration": "1h",
-    "board": "AQA",
-    "code": "8145/2A/A",
-    "title": "History P2A/A Health and the People",
-    "subject": "History GCSE",
-    "level": "GCSE",
-    "candidates": 18,
-    "room": "Gym",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 18
-  },
-  {
-    "id": "e72",
-    "date": "2026-06-04",
-    "dateText": "Thu 04 Jun",
-    "time": "08:50",
-    "duration": "1h",
-    "board": "AQA",
-    "code": "8145/2B/D",
-    "title": "History P2B OpD Restoration England 1660-1685",
-    "subject": "History GCSE",
-    "level": "GCSE",
-    "candidates": 18,
-    "room": "Gym",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 18
-  },
-  {
-    "id": "e73",
-    "date": "2026-06-04",
-    "dateText": "Thu 04 Jun",
-    "time": "13:30",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7402/1",
-    "title": "Biology A Level Paper 1",
-    "subject": "Biology A Level",
-    "level": "A Level",
-    "candidates": 14,
-    "room": "Gym",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 14
-  },
-  {
-    "id": "e74",
-    "date": "2026-06-05",
-    "dateText": "Fri 05 Jun",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7182/3",
-    "title": "Psychology A Level Paper 3",
-    "subject": "Psychology A Level",
-    "level": "A Level",
-    "candidates": 4,
-    "room": "Gym",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 4
-  },
-  {
-    "id": "e75",
-    "date": "2026-06-05",
-    "dateText": "Fri 05 Jun",
-    "time": "08:50",
-    "duration": "1h 45m",
-    "board": "AQA",
-    "code": "8700/2",
-    "title": "English Language Paper 2",
-    "subject": "English Language GCSE",
-    "level": "GCSE",
-    "candidates": 27,
-    "room": "Gym, Old Drama/Rm 20",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 28
-  },
-  {
-    "id": "e77",
-    "date": "2026-06-05",
-    "dateText": "Fri 05 Jun",
-    "time": "13:30",
-    "duration": "1h 15m",
-    "board": "WJEC/GCSE",
-    "code": "C660U30-1",
-    "title": "Music Component 3 Appraising",
-    "subject": "Music GCSE",
-    "level": "GCSE",
-    "candidates": 1,
-    "room": "RM 25",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 1
-  },
-  {
-    "id": "e78",
-    "date": "2026-06-05",
-    "dateText": "Fri 05 Jun",
-    "time": "13:30",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7367/2",
-    "title": "Further Mathematics A Level Paper 2",
-    "subject": "Further Mathematics A Level",
-    "level": "A Level",
-    "candidates": 3,
-    "room": "Old Drama/Rm 20",
-    "invigilators": "Pat",
-    "allDay": false,
-    "candidateTotal": 3
-  },
-  {
-    "id": "e79",
-    "date": "2026-06-08",
-    "dateText": "Mon 08 Jun",
-    "time": "08:50",
-    "duration": "1h 15m",
-    "board": "EDEXL/GCSE",
-    "code": "4BI1 2B",
-    "title": "Written Paper 2B",
-    "subject": "Biology IGCSE",
-    "level": "IGCSE",
-    "candidates": 14,
-    "room": "Gym",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 14
-  },
-  {
-    "id": "e80",
-    "date": "2026-06-08",
-    "dateText": "Mon 08 Jun",
-    "time": "08:50",
-    "duration": "1h 30m",
-    "board": "OCR",
-    "code": "H556/03",
-    "title": "Physics A: Unified Physics Written",
-    "subject": "Physics A Level",
-    "level": "A Level",
-    "candidates": 5,
-    "room": "Gym, Old Drama Studio",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 6
-  },
-  {
-    "id": "e82",
-    "date": "2026-06-09",
-    "dateText": "Tue 09 Jun",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7405/2",
-    "title": "Chemistry A Level Paper 2",
-    "subject": "Chemistry A Level",
-    "level": "A Level",
-    "candidates": 16,
-    "room": "Gym, Old Drama/Rm 20",
-    "invigilators": "Zaynab",
-    "allDay": false,
-    "candidateTotal": 17
-  },
-  {
-    "id": "e84",
-    "date": "2026-06-09",
-    "dateText": "Tue 09 Jun",
-    "time": "08:50",
-    "duration": "45m",
-    "board": "AQA",
-    "code": "8692/LH",
-    "title": "Spanish Listening Test Tier H",
-    "subject": "Spanish GCSE",
-    "level": "GCSE",
-    "candidates": 17,
-    "room": "RM 25",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 17
-  },
-  {
-    "id": "e85",
-    "date": "2026-06-09",
-    "dateText": "Tue 09 Jun",
-    "time": "08:50",
-    "duration": "1h",
-    "board": "AQA",
-    "code": "8692/RH",
-    "title": "Spanish Reading Test Tier H",
-    "subject": "Spanish GCSE",
-    "level": "GCSE",
-    "candidates": 17,
-    "room": "RM 25",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 17
-  },
-  {
-    "id": "e86",
-    "date": "2026-06-09",
-    "dateText": "Tue 09 Jun",
-    "time": "13:30",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7132/3",
-    "title": "Business A Level Paper 3",
-    "subject": "Business A Level",
-    "level": "A Level",
-    "candidates": 3,
-    "room": "Gym",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 3
-  },
-  {
-    "id": "e87",
-    "date": "2026-06-10",
-    "dateText": "Wed 10 Jun",
-    "time": "13:30",
-    "duration": "1h 15m",
-    "board": "AQA",
-    "code": "8683/WH",
-    "title": "Panjabi Writing Test Tier H",
-    "subject": "Panjabi GCSE",
-    "level": "GCSE",
-    "candidates": 1,
-    "room": "Gym",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 1
-  },
-  {
-    "id": "e88",
-    "date": "2026-06-11",
-    "dateText": "Thu 11 Jun",
-    "time": "08:50",
-    "duration": "1h 30m",
-    "board": "OCR",
-    "code": "J383/03",
-    "title": "Geography A : Geographical Skills Written",
-    "subject": "Geography GCSE",
-    "level": "GCSE",
-    "candidates": 7,
-    "room": "Gym",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 7
-  },
-  {
-    "id": "e89",
-    "date": "2026-06-11",
-    "dateText": "Thu 11 Jun",
-    "time": "13:30",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7357/2",
-    "title": "Mathematics A Level Paper 2",
-    "subject": "Mathematics A Level",
-    "level": "A Level",
-    "candidates": 16,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 16
-  },
-  {
-    "id": "e90",
-    "date": "2026-06-11",
-    "dateText": "Thu 11 Jun",
-    "time": "13:30",
-    "duration": "1h 30m",
-    "board": "OCR",
-    "code": "J309/01",
-    "title": "Food Prep: Food Preparation & Nutrition Written",
-    "subject": "Food Preparation and Nutrition GCSE",
-    "level": "GCSE",
-    "candidates": 9,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 9
-  },
-  {
-    "id": "e91",
-    "date": "2026-06-12",
-    "dateText": "Fri 12 Jun",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7402/2",
-    "title": "Biology A Level Paper 2",
-    "subject": "Biology A Level",
-    "level": "A Level",
-    "candidates": 14,
-    "room": "Gym",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 14
-  },
-  {
-    "id": "e92",
-    "date": "2026-06-12",
-    "dateText": "Fri 12 Jun",
-    "time": "08:50",
-    "duration": "1h 15m",
-    "board": "EDEXL/GCSE",
-    "code": "4CH1 2C",
-    "title": "Written Paper 2C",
-    "subject": "Chemistry IGCSE",
-    "level": "IGCSE",
-    "candidates": 14,
-    "room": "Gym",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 14
-  },
-  {
-    "id": "e93",
-    "date": "2026-06-12",
-    "dateText": "Fri 12 Jun",
-    "time": "13:30",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7692/2",
-    "title": "Spanish A Level Paper 2 Writing",
-    "subject": "Spanish A Level",
-    "level": "A Level",
-    "candidates": 1,
-    "room": "Gym",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 1
-  },
-  {
-    "id": "e94",
-    "date": "2026-06-12",
-    "dateText": "Fri 12 Jun",
-    "time": "13:30",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7192/3",
-    "title": "Sociology A Level Paper 3",
-    "subject": "Sociology A Level",
-    "level": "A Level",
-    "candidates": 3,
-    "room": "Gym",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 3
-  },
-  {
-    "id": "e95",
-    "date": "2026-06-12",
-    "dateText": "Fri 12 Jun",
-    "time": "13:30",
-    "duration": "1h",
-    "board": "AQA",
-    "code": "7367/3M",
-    "title": "Further Maths A Level Paper 3 Mechanics 3M",
-    "subject": "Further Mathematics A Level",
-    "level": "A Level",
-    "candidates": 4,
-    "room": "Gym",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 8
-  },
-  {
-    "id": "e96",
-    "date": "2026-06-12",
-    "dateText": "Fri 12 Jun",
-    "time": "13:30",
-    "duration": "1h",
-    "board": "AQA",
-    "code": "7367/3S",
-    "title": "Further Maths A Level Paper 3 Statistics",
-    "subject": "Further Mathematics A Level",
-    "level": "A Level",
-    "candidates": 1,
-    "room": "Old Drama/Rm 20",
-    "invigilators": "Pat",
-    "allDay": false,
-    "candidateTotal": 2
-  },
-  {
-    "id": "e99",
-    "date": "2026-06-15",
-    "dateText": "Mon 15 Jun",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7405/3",
-    "title": "Chemistry A Level Paper 3",
-    "subject": "Chemistry A Level",
-    "level": "A Level",
-    "candidates": 16,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 16
-  },
-  {
-    "id": "e100",
-    "date": "2026-06-15",
-    "dateText": "Mon 15 Jun",
-    "time": "08:50",
-    "duration": "1h 15m",
-    "board": "EDEXL/GCSE",
-    "code": "4PH1 2P",
-    "title": "Written Paper 2P",
-    "subject": "Physics IGCSE",
-    "level": "IGCSE",
-    "candidates": 14,
-    "room": "Gym",
-    "invigilators": "Sandra & Zaynab",
-    "allDay": false,
-    "candidateTotal": 14
-  },
-  {
-    "id": "e101",
-    "date": "2026-06-16",
-    "dateText": "Tue 16 Jun",
-    "time": "08:50",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7402/3",
-    "title": "Biology A Level Paper 3",
-    "subject": "Biology A Level",
-    "level": "A Level",
-    "candidates": 14,
-    "room": "Gym",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 14
-  },
-  {
-    "id": "e102",
-    "date": "2026-06-16",
-    "dateText": "Tue 16 Jun",
-    "time": "08:50",
-    "duration": "1h 15m",
-    "board": "AQA",
-    "code": "8692/WH",
-    "title": "Spanish Writing Test Tier H",
-    "subject": "Spanish GCSE",
-    "level": "GCSE",
-    "candidates": 17,
-    "room": "Gym",
-    "invigilators": "Sandra & Fathimath",
-    "allDay": false,
-    "candidateTotal": 17
-  },
-  {
-    "id": "e103",
-    "date": "2026-06-18",
-    "dateText": "Thu 18 Jun",
-    "time": "13:30",
-    "duration": "2h",
-    "board": "AQA",
-    "code": "7357/3",
-    "title": "Mathematics A Level Paper 3",
-    "subject": "Mathematics A Level",
-    "level": "A Level",
-    "candidates": 15,
-    "room": "Gym, Old Drama/Rm 20",
-    "invigilators": "Sandra",
-    "allDay": false,
-    "candidateTotal": 17
   }
-];
-
-const STORE_KEY = "lhs-exam-subjects-v1";
-const MENU_KEY = "lhs-exam-menu-hidden-v1";
-const COMPLETED_KEY = "lhs-exam-show-completed-v1";
-
-const subjectGrid = document.getElementById("subjectGrid");
-const subjectPanel = document.getElementById("subjectPanel");
-const toggleSubjects = document.getElementById("toggleSubjects");
-const showHidden = document.getElementById("showHidden");
-
-const fmtDate = new Intl.DateTimeFormat("en-GB", { weekday:"short", day:"numeric", month:"short" });
-const fmtFull = new Intl.DateTimeFormat("en-GB", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
-
-function subjects() {
-  return [...new Set(EXAMS.map(e => e.subject))].sort((a,b)=>a.localeCompare(b));
-}
-
-function selectedSubjects() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
-    return new Set(saved);
-  } catch {
-    return new Set();
-  }
-}
-
-function saveSubjects(set) {
-  localStorage.setItem(STORE_KEY, JSON.stringify([...set]));
-}
-
-function todayStart() {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-}
-
-function examStart(e) {
-  if (!e.date) return null;
-  const t = e.time === "All Day" || e.time === "TBA" ? "00:00" : e.time;
-  return new Date(`${e.date}T${t}:00`);
-}
-
-function examEnd(e) {
-  const start = examStart(e);
-  if (!start) return null;
-  if (e.allDay) return new Date(start.getTime() + 24*60*60*1000);
-  const match = (e.duration || "").match(/(?:(\d+)h)?\s*(?:(\d+)m)?/);
-  const minutes = match ? ((parseInt(match[1] || "0") * 60) + parseInt(match[2] || "0")) : 120;
-  return new Date(start.getTime() + Math.max(minutes, 60) * 60 * 1000);
-}
-
-function isToday(e) {
-  const s = examStart(e);
-  if (!s) return false;
-  const t = todayStart();
-  return s.getFullYear() === t.getFullYear() && s.getMonth() === t.getMonth() && s.getDate() === t.getDate();
-}
-
-function isCompleted(e) {
-  const end = examEnd(e);
-  return end ? end < new Date() : false;
-}
-
-function dateText(e) {
-  if (!e.date) return e.dateText || "TBA";
-  return fmtDate.format(new Date(`${e.date}T12:00:00`));
-}
-
-function sortExams(a,b) {
-  const ad = examStart(a), bd = examStart(b);
-  if (!ad && !bd) return a.subject.localeCompare(b.subject);
-  if (!ad) return 1;
-  if (!bd) return -1;
-  return ad - bd || a.subject.localeCompare(b.subject);
-}
-
-function examCard(e, today=false) {
-  const time = e.time === "All Day" ? "All day" : e.time;
-  const room = e.room ? `<span><b>Room:</b> ${escapeHtml(e.room)}</span>` : "";
-  const duration = e.duration ? `<span><b>Length:</b> ${escapeHtml(e.duration)}</span>` : "";
-  const board = e.board || e.code ? `<span><b>Paper:</b> ${escapeHtml(e.board)} ${escapeHtml(e.code)}</span>` : "";
-  const candidates = e.candidateTotal ? `<span><b>Candidates:</b> ${e.candidateTotal}</span>` : "";
-  return `<article class="card ${today ? "today" : ""}">
-    <div class="exam-head">
-      <div>
-        <p class="exam-title">${escapeHtml(e.title)}</p>
-        <div class="exam-subject">${escapeHtml(e.subject)}</div>
-      </div>
-      <div class="pill ${today ? "today-pill" : ""}">${today ? "Today • " : ""}${escapeHtml(dateText(e))} • ${escapeHtml(time)}</div>
-    </div>
-    <div class="meta">
-      ${duration}
-      ${room}
-      ${board}
-      ${candidates}
-    </div>
-  </article>`;
-}
-
-function escapeHtml(str) {
-  return String(str ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
-
-function renderSubjects() {
-  const selected = selectedSubjects();
-  subjectGrid.innerHTML = subjects().map(s => `
-    <label class="subject">
-      <input type="checkbox" value="${escapeHtml(s)}" ${selected.has(s) ? "checked" : ""}>
-      <span>${escapeHtml(s)}</span>
-    </label>
-  `).join("");
-  subjectGrid.querySelectorAll("input").forEach(cb => cb.addEventListener("change", () => {
-    const set = selectedSubjects();
-    cb.checked ? set.add(cb.value) : set.delete(cb.value);
-    saveSubjects(set);
-    render();
-  }));
-}
-
-function renderList(id, list, today=false) {
-  document.getElementById(id).innerHTML = list.map(e => examCard(e, today)).join("");
-}
-
-function render() {
-  const selected = selectedSubjects();
-  const selectedList = EXAMS.filter(e => selected.has(e.subject));
-  const now = new Date();
-  const scheduled = selectedList.filter(e => e.date);
-  const unscheduled = selectedList.filter(e => !e.date).sort(sortExams);
-  const today = scheduled.filter(e => isToday(e) && !isCompleted(e)).sort(sortExams);
-  const completed = scheduled.filter(isCompleted).sort(sortExams);
-  const upcoming = scheduled.filter(e => !isCompleted(e) && !isToday(e)).sort(sortExams);
-  const next = [...today, ...upcoming].sort(sortExams).slice(0,1);
-
-  document.getElementById("dateLine").textContent = `Today is ${fmtFull.format(now)}. Completed exams are hidden unless you choose to show them.`;
-  document.getElementById("studentSummary").textContent = selected.size ? `${selected.size} subject(s) selected` : "No subjects selected";
-  document.getElementById("todayCount").textContent = today.length;
-  document.getElementById("nextCount").textContent = next.length ? dateText(next[0]) : "—";
-  document.getElementById("leftCount").textContent = today.length + upcoming.length;
-  document.getElementById("todayLabel").textContent = `${today.length} found`;
-  document.getElementById("upcomingLabel").textContent = `${upcoming.length} remaining`;
-
-  const msg = document.getElementById("message");
-  if (!selected.size) {
-    msg.innerHTML = `<div class="notice empty">Select your subjects from the menu to create your personal timetable.</div>`;
-  } else if (!today.length && !upcoming.length && !unscheduled.length) {
-    msg.innerHTML = `<div class="notice">No remaining selected exams are showing. Completed exams may be hidden.</div>`;
-  } else if (today.length) {
-    msg.innerHTML = `<div class="notice">You have ${today.length} selected exam(s) today. Check the time, room and any school updates.</div>`;
-  } else {
-    msg.innerHTML = "";
-  }
-
-  renderList("todayList", today, true);
-  renderList("nextList", next, next.length && isToday(next[0]));
-  renderList("upcomingList", upcoming);
-  renderList("unscheduledList", unscheduled);
-  renderList("completedList", completed);
-
-  document.getElementById("todaySection").classList.toggle("hide", !today.length);
-  document.getElementById("nextSection").classList.toggle("hide", !next.length);
-  document.getElementById("upcomingSection").classList.toggle("hide", !upcoming.length);
-  document.getElementById("unscheduledSection").classList.toggle("hide", !unscheduled.length);
-  const showCompleted = localStorage.getItem(COMPLETED_KEY) === "true";
-  document.getElementById("completedSection").classList.toggle("hide", !showCompleted || !completed.length);
-  showHidden.textContent = showCompleted ? "Hide completed" : "Show completed";
-}
-
-function setMenuHidden(hidden) {
-  subjectPanel.classList.toggle("hidden", hidden);
-  toggleSubjects.setAttribute("aria-expanded", String(!hidden));
-  localStorage.setItem(MENU_KEY, hidden ? "true" : "false");
-}
-
-document.getElementById("selectAll").addEventListener("click", () => {
-  saveSubjects(new Set(subjects()));
-  renderSubjects();
-  render();
-});
-
-document.getElementById("clearAll").addEventListener("click", () => {
-  saveSubjects(new Set());
-  renderSubjects();
-  render();
-});
-
-document.getElementById("resetBtn").addEventListener("click", () => {
-  localStorage.removeItem(STORE_KEY);
-  localStorage.removeItem(COMPLETED_KEY);
-  renderSubjects();
-  render();
-});
-
-document.getElementById("hideMenu").addEventListener("click", () => setMenuHidden(true));
-toggleSubjects.addEventListener("click", () => setMenuHidden(!subjectPanel.classList.contains("hidden")));
-
-showHidden.addEventListener("click", () => {
-  const current = localStorage.getItem(COMPLETED_KEY) === "true";
-  localStorage.setItem(COMPLETED_KEY, current ? "false" : "true");
-  render();
-});
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js"));
-}
-
-renderSubjects();
-setMenuHidden(localStorage.getItem(MENU_KEY) === "true");
-render();
-</script>
-</body>
-</html>
+</style>
