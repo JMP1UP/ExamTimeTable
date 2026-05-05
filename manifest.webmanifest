@@ -1,19 +1,15 @@
 {
   "name": "LHS Exam Timetable",
   "short_name": "LHS Exams",
-  "description": "Personal exam timetable tracker for Leicester High School students.",
-  "start_url": "./index.html",
-  "scope": "./",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#f7fafc",
   "theme_color": "#102a43",
-  "orientation": "portrait",
   "icons": [
     {
       "src": "icon.svg",
       "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/svg+xml"
     }
   ]
 }
