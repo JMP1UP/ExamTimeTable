@@ -180,9 +180,21 @@
       padding:10px;
       background:var(--soft);
       border:1px solid transparent;
+      border-left:5px solid var(--subject-colour, var(--accent));
       border-radius:14px;
       font-weight:650;
       cursor:pointer;
+    }
+    .subject-dot {
+      width:10px;
+      height:10px;
+      border-radius:999px;
+      flex:0 0 auto;
+      background:var(--subject-colour, var(--accent));
+    }
+    .subject-name {
+      flex:1;
+      min-width:0;
     }
     label.subject:has(input:checked) {
       background:var(--accent-soft);
@@ -2004,9 +2016,9 @@ function escapeHtml(str) {
 function renderSubjects() {
   const selected = selectedSubjects();
   subjectGrid.innerHTML = subjects().map(s => `
-    <label class="subject">
+    <label class="subject" style="--subject-colour:${subjectColour(s)}">
       <input type="checkbox" value="${escapeHtml(s)}" ${selected.has(s) ? "checked" : ""}>
-      <span class="subject-dot" style="background:${subjectColour(s)}"></span>
+      <span class="subject-dot"></span>
       <span class="subject-name">${escapeHtml(s)}</span>
     </label>
   `).join("");
@@ -2102,7 +2114,11 @@ showHidden.addEventListener("click", () => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js"));
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {
+      console.log("Service worker failed to load");
+    });
+  });
 }
 
 renderSubjects();
