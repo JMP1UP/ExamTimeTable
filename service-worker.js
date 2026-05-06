@@ -1,4 +1,4 @@
-const CACHE_NAME = "lhs-exam-timetable-v8";
+const CACHE_NAME = "lhs-exam-timetable-v9";
 const ASSETS = [
   "./",
   "./index.html",
