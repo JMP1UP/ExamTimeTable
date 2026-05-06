@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="en-GB">
 <head>
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#102a43">
@@ -10,6 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
   <title>LHS Exam Timetable</title>
   <style>
     :root {
@@ -450,7 +450,7 @@
     </section>
 
     <div class="footer-note">
-      Timetable data loaded from the Summer 2026 exam spreadsheet. Pupils should check any rooming or last-minute changes issued by school.
+      Timetable data version: Summer 2026 spreadsheet, updated 6 May 2026. Planning aid only: pupils should check their official school exam timetable.
     </div>
   </main>
 
@@ -475,8 +475,8 @@ const EXAMS = [
   },
   {
     "id": "e2",
-    "date": null,
-    "dateText": "20 & 21",
+    "date": "2026-04-20",
+    "dateText": "20 & 21 Apr",
     "time": "All Day",
     "duration": "10h",
     "board": "AQA",
@@ -1889,6 +1889,19 @@ const EXAMS = [
 const STORE_KEY = "lhs-exam-subjects-v1";
 const MENU_KEY = "lhs-exam-menu-hidden-v1";
 const COMPLETED_KEY = "lhs-exam-show-completed-v1";
+const SUBJECT_COLOURS = [
+  "#2563eb", "#dc2626", "#16a34a", "#9333ea", "#ea580c",
+  "#0891b2", "#be123c", "#4f46e5", "#65a30d", "#c026d3",
+  "#0f766e", "#ca8a04", "#7c3aed", "#db2777", "#0284c7",
+  "#b45309", "#15803d", "#7f1d1d", "#4338ca", "#0e7490"
+];
+
+function subjectColour(subject) {
+  const list = subjects();
+  const index = Math.max(0, list.indexOf(subject));
+  return SUBJECT_COLOURS[index % SUBJECT_COLOURS.length];
+}
+
 
 const subjectGrid = document.getElementById("subjectGrid");
 const subjectPanel = document.getElementById("subjectPanel");
@@ -1966,11 +1979,12 @@ function examCard(e, today=false) {
   const duration = e.duration ? `<span><b>Length:</b> ${escapeHtml(e.duration)}</span>` : "";
   const board = e.board || e.code ? `<span><b>Paper:</b> ${escapeHtml(e.board)} ${escapeHtml(e.code)}</span>` : "";
   const candidates = e.candidateTotal ? `<span><b>Candidates:</b> ${e.candidateTotal}</span>` : "";
-  return `<article class="card ${today ? "today" : ""}">
+  const colour = subjectColour(e.subject);
+  return `<article class="card ${today ? "today" : ""}" style="border-left-color:${colour}">
     <div class="exam-head">
       <div>
         <p class="exam-title">${escapeHtml(e.title)}</p>
-        <div class="exam-subject">${escapeHtml(e.subject)}</div>
+        <div class="exam-subject"><span class="subject-dot" style="background:${colour}; display:inline-block; margin-right:6px; vertical-align:middle;"></span>${escapeHtml(e.subject)}</div>
       </div>
       <div class="pill ${today ? "today-pill" : ""}">${today ? "Today • " : ""}${escapeHtml(dateText(e))} • ${escapeHtml(time)}</div>
     </div>
@@ -1992,7 +2006,8 @@ function renderSubjects() {
   subjectGrid.innerHTML = subjects().map(s => `
     <label class="subject">
       <input type="checkbox" value="${escapeHtml(s)}" ${selected.has(s) ? "checked" : ""}>
-      <span>${escapeHtml(s)}</span>
+      <span class="subject-dot" style="background:${subjectColour(s)}"></span>
+      <span class="subject-name">${escapeHtml(s)}</span>
     </label>
   `).join("");
   subjectGrid.querySelectorAll("input").forEach(cb => cb.addEventListener("change", () => {
